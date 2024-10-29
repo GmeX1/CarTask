@@ -22,7 +22,7 @@ class Car(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255))
     brand: Mapped[str] = mapped_column(String(255))
-    price: Mapped[float]
+    price: Mapped[float] = mapped_column(default=0)
     engine_type: Mapped[Enum] = mapped_column(Enum(Engine), nullable=False)
 
 
