@@ -1,20 +1,24 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy import select
+from typing import List
+
+from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_session
-from database.models import Order
-from schemas.order_schemas import OrderCreate, OrderReturn
+from database.repositories import OrderRepository
+from schemas.order_schemas import OrderCreate, OrderReturn, OrderEdit
 
-order_router = APIRouter()
+order_router = APIRouter(prefix='/order')
 
 
-@order_router.get('/get_orders')
-def get_orders(session: Session = Depends(get_session)):
-    result = session.execute(select(Order)).all()
+def get_order_repo(session: Session = Depends(get_session)):
+    return OrderRepository(session)
+
+
+@order_router.get('/get_orders', response_model=List[OrderReturn])
+def get_orders(repo: OrderRepository = Depends(get_order_repo)):
+    result = repo.get_orders()
     out = list()
     for item in result:
-        item = item[0]
         out.append(OrderReturn(
             id=item.id,
             creation_date=item.creation_date,
@@ -24,17 +28,26 @@ def get_orders(session: Session = Depends(get_session)):
     return out
 
 
-@order_router.get('/get_orders_user/{user_id}')
-def get_orders_by_user_id(user_id: int):
-    pass
+@order_router.get('/get_orders_user/{user_id}', response_model=List[OrderReturn])
+def get_orders_by_user_id(user_id: int, repo: OrderRepository = Depends(get_order_repo)):
+    result = repo.get_orders_by_user_id(user_id)
+
+    out = list()
+    for item in result:
+        out.append(OrderReturn(
+            id=item.id,
+            creation_date=item.creation_date,
+            user_id=item.user_id,
+            car_id=item.car_id
+        ))
+    return out
 
 
-@order_router.post('/add_order')
-def add_order(order_data: OrderCreate, session: Session = Depends(get_session)):
-    new_order = Order(user_id=order_data.user_id, car_id=order_data.car_id)
-    session.add(new_order)
-    session.commit()
-
+@order_router.post('/add_order', response_model=OrderReturn)
+def add_order(order_data: OrderCreate, repo: OrderRepository = Depends(get_order_repo)):
+    new_order = repo.create_order(order_data)
+    if type(new_order) is str:
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=new_order)
     return OrderReturn(
         id=new_order.id,
         creation_date=new_order.creation_date,
@@ -43,11 +56,36 @@ def add_order(order_data: OrderCreate, session: Session = Depends(get_session)):
     )
 
 
-@order_router.patch('/edit_order/{order_id}')
-def edit_order(order_id: int, new_data):
-    pass
+@order_router.patch('/edit_order/{order_id}', response_model=OrderReturn)
+def edit_order(order_id: int, new_data: OrderEdit, repo: OrderRepository = Depends(get_order_repo)):
+    result = repo.edit_order_by_order_id(order_id, new_data)
+    if type(result) is str:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=result)
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'No order with order_id={order_id} found.')
+    return OrderReturn(
+        id=result.id,
+        creation_date=result.creation_date,
+        user_id=result.user_id,
+        car_id=result.car_id
+    )
 
 
-@order_router.delete('/delete_order/{order_id}')
-def delete_order(order_id: int):
-    pass
+@order_router.delete('/delete_orders_by_user_id/{user_id}', response_model=int)
+def delete_orders_by_user_id(user_id: int, repo: OrderRepository = Depends(get_order_repo)):
+    result = repo.delete_orders_by_user_id(user_id)
+    if type(result) is str:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=result)
+    if result:
+        return status.HTTP_200_OK
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'No order with user_id={user_id} found.')
+
+
+@order_router.delete('/delete_order_by_order_id/{order_id}', response_model=int)
+def delete_order_by_order_id(order_id: int, repo: OrderRepository = Depends(get_order_repo)):
+    result = repo.delete_order_by_order_id(order_id)
+    if type(result) is str:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=result)
+    if result:
+        return status.HTTP_200_OK
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'No order with order_id={order_id} found.')
