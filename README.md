@@ -35,7 +35,7 @@ There are 2 ways to set up and launch the project:
    DB_NAME=name
    DB_USER=user
    DB_PASS=pwd
-4. ```
+   ```
 
 ### Launch - The Dockerized way:
 
