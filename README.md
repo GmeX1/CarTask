@@ -57,11 +57,13 @@ There are 2 ways to set up and launch the project:
    ```
 6. !!! **Create migration and upgrade the db**, or db won't work !!!!:
    ```bash
-   sudo docker-compose exec app alembic revision --autogenerate 
-   sudo docker-compose exec app alembic upgrade head
+   docker-compose exec app alembic revision --autogenerate 
+   docker-compose exec app alembic upgrade head
    ```
-    - If you have problems mentioning `revision id`, than your database is not clear.
-      To reset alembic versions and force the migration, drop the table from your postgresql DB:
+   
+   If you have problems mentioning `revision id`, than your database is not clear.
+   
+   To reset alembic versions and force the migration, drop the table from your postgresql DB:
    ```sql
     DROP TABLE alembic_version
    ```
@@ -89,8 +91,22 @@ There are 2 ways to set up and launch the project:
 5. **Setup your postgresql server**, if you haven't already
 
    [Add links]
+
+7. !!! **Create migration and upgrade the db**, or db won't work !!!!:
+   ```bash
+   docker-compose exec app alembic revision --autogenerate 
+   docker-compose exec app alembic upgrade head
+   ```
+
+   If you have problems mentioning `revision id`, than your database is not clear.
    
-6. **Run the code**
+   To reset alembic versions and force the migration, drop the table from your postgresql DB:
+   ```sql
+    DROP TABLE alembic_version
+   ```
+   And now you can try step 6 again.
+   
+9. **Run the code**
    ```bash
    python main.py
    ```
